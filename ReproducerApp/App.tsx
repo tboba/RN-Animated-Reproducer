@@ -1,118 +1,77 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {Suspense, useRef, useState} from 'react';
+import {Button, SafeAreaView, View, Text, ScrollView} from 'react-native';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+let cache = new Map();
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+function fetch(key) {
+  if (!cache.has(key)) {
+    cache.set(key, getData(key));
+  }
+  return cache.get(key);
+}
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+async function getData(key) {
+  // Add a fake delay to make waiting noticeable.
+  await new Promise(resolve => {
+    setTimeout(resolve, 3000);
+  });
+  return `Data for ${key}`;
+}
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function Something() {
+  const [count, setCount] = useState(0);
+  const data = use(fetch(count));
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View>
+      <Text>Fetched {data}</Text>
+      <SomeScroll />
+      <Button title="Re-render" onPress={() => setCount(v => v + 1)} />
     </View>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
+export default function App() {
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+    <SafeAreaView style={{flex: 1}}>
+      <Suspense fallback={null}>
+        <Something />
+      </Suspense>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+function SomeScroll() {
+  return (
+    <View style={{width: 300, height: 100}}>
+      <ScrollView>
+        <View style={{width: 300, height: 40, backgroundColor: 'red'}} />
+        <View style={{width: 300, height: 40, backgroundColor: 'blue'}} />
+        <View style={{width: 300, height: 40, backgroundColor: 'yellow'}} />
+        <View style={{width: 300, height: 40, backgroundColor: 'brown'}} />
+      </ScrollView>
+    </View>
+  );
+}
 
-export default App;
+function use(promise) {
+  if (promise.status === 'fulfilled') {
+    return promise.value;
+  } else if (promise.status === 'rejected') {
+    throw promise.reason;
+  } else if (promise.status === 'pending') {
+    throw promise;
+  } else {
+    promise.status = 'pending';
+    promise.then(
+      result => {
+        promise.status = 'fulfilled';
+        promise.value = result;
+      },
+      reason => {
+        promise.status = 'rejected';
+        promise.reason = reason;
+      },
+    );
+    throw promise;
+  }
+}
